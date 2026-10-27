@@ -12,6 +12,7 @@ dist/
 build/
 
 # Secrets
+application-secret.properties
 .env
 .env.*
 
