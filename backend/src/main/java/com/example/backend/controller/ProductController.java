@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/products")
@@ -29,15 +30,23 @@ public class ProductController {
 
     private final ProductService productService;
 
-    // Приклад: GET /api/products?search=iphone&categoryId=1&minPrice=1000&maxPrice=50000&page=0&size=12&sort=price,asc
+    // Приклад: GET /api/products?search=iphone&categoryId=1&brand=Apple&minPrice=1000&maxPrice=50000
+    //                           &inStock=true&page=0&size=12&sort=price,asc
     @GetMapping
     public PageResponse<ProductResponse> search(
             @RequestParam(name = "search", required = false) String search,
             @RequestParam(name = "categoryId", required = false) Long categoryId,
+            @RequestParam(name = "brand", required = false) String brand,
             @RequestParam(name = "minPrice", required = false) BigDecimal minPrice,
             @RequestParam(name = "maxPrice", required = false) BigDecimal maxPrice,
+            @RequestParam(name = "inStock", defaultValue = "false") boolean inStock,
             @PageableDefault(size = 12, sort = "id") Pageable pageable) {
-        return productService.search(search, categoryId, minPrice, maxPrice, pageable);
+        return productService.search(search, categoryId, brand, minPrice, maxPrice, inStock, pageable);
+    }
+
+    @GetMapping("/brands")
+    public List<String> brands() {
+        return productService.findAllBrands();
     }
 
     @GetMapping("/{id}")

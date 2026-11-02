@@ -26,14 +26,22 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
                    or lower(p.name) like lower(concat('%', :search, '%'))
                    or lower(p.brand) like lower(concat('%', :search, '%')))
               and (:categoryId is null or p.category.id = :categoryId)
+              and (:brand is null or lower(p.brand) = lower(:brand))
               and (:minPrice is null or p.price >= :minPrice)
               and (:maxPrice is null or p.price <= :maxPrice)
+              and (:inStock = false or p.stock > 0)
             """)
     Page<Product> search(@Param("search") String search,
                          @Param("categoryId") Long categoryId,
+                         @Param("brand") String brand,
                          @Param("minPrice") BigDecimal minPrice,
                          @Param("maxPrice") BigDecimal maxPrice,
+                         @Param("inStock") boolean inStock,
                          Pageable pageable);
+
+    // Список брендів для фільтра в каталозі
+    @Query("select distinct p.brand from Product p where p.brand is not null and p.brand <> '' order by p.brand")
+    List<String> findAllBrands();
 
     boolean existsByCategoryId(Long categoryId);
 

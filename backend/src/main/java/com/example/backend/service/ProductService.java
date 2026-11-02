@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -32,15 +33,19 @@ public class ProductService {
 
     // Каталог: пошук + фільтри + пагінація
     @Transactional(readOnly = true)
-    public PageResponse<ProductResponse> search(String search, Long categoryId,
+    public PageResponse<ProductResponse> search(String search, Long categoryId, String brand,
                                                 BigDecimal minPrice, BigDecimal maxPrice,
-                                                Pageable pageable) {
-        // Порожній рядок пошуку = без пошуку
-        String text = (search == null || search.isBlank()) ? null : search.trim();
+                                                boolean inStock, Pageable pageable) {
+        // Порожній рядок = фільтр не застосовується
         Page<ProductResponse> page = productRepository
-                .search(text, categoryId, minPrice, maxPrice, pageable)
+                .search(blankToNull(search), categoryId, blankToNull(brand), minPrice, maxPrice, inStock, pageable)
                 .map(ProductResponse::from);
         return PageResponse.from(page);
+    }
+
+    @Transactional(readOnly = true)
+    public List<String> findAllBrands() {
+        return productRepository.findAllBrands();
     }
 
     @Transactional(readOnly = true)
@@ -92,6 +97,10 @@ public class ProductService {
         product.setBrand(request.brand());
         product.setPrice(request.price());
         product.setCategory(category);
+    }
+
+    private static String blankToNull(String text) {
+        return (text == null || text.isBlank()) ? null : text.trim();
     }
 
     private Product getProduct(Long id) {
