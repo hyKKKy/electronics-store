@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { api } from '../api'
+import { useCart } from '../cart/CartContext'
 import { formatPrice } from '../format'
 import Pagination from '../components/Pagination'
 import ErrorAlert from '../components/ErrorAlert'
@@ -21,6 +22,7 @@ export default function CatalogPage() {
   const [brands, setBrands] = useState([])
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
+  const { add } = useCart()
 
   // Значення форми до натискання "Застосувати"
   const [form, setForm] = useState(() => readForm(searchParams))
@@ -140,6 +142,13 @@ export default function CatalogPage() {
                         ? <span className="text-success small">В наявності</span>
                         : <span className="text-danger small">Немає в наявності</span>}
                     </div>
+                    {product.stock > 0 && (
+                      <div className="card-footer bg-transparent">
+                        <button className="btn btn-sm btn-outline-primary" onClick={() => add(product)}>
+                          В кошик
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

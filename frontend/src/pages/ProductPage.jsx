@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../api'
+import { useCart } from '../cart/CartContext'
 import { formatPrice } from '../format'
 import ErrorAlert from '../components/ErrorAlert'
 
@@ -8,10 +9,18 @@ export default function ProductPage() {
   const { id } = useParams()
   const [product, setProduct] = useState(null)
   const [error, setError] = useState(null)
+  const [quantity, setQuantity] = useState(1)
+  const [added, setAdded] = useState(false)
+  const { add } = useCart()
 
   useEffect(() => {
     api(`/products/${id}`).then(setProduct).catch(setError)
   }, [id])
+
+  function addToCart() {
+    add(product, Math.min(quantity, product.stock))
+    setAdded(true)
+  }
 
   if (error) return <ErrorAlert error={error} />
   if (!product) return <p>Завантаження...</p>
@@ -34,6 +43,14 @@ export default function ProductPage() {
         </tbody>
       </table>
       {product.description && <p>{product.description}</p>}
+      {product.stock > 0 && (
+        <div className="d-flex gap-2 align-items-center">
+          <input type="number" className="form-control" style={{ width: 90 }} min="1" max={product.stock}
+                 value={quantity} onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))} />
+          <button className="btn btn-primary" onClick={addToCart}>Додати в кошик</button>
+          {added && <span className="text-success">Додано</span>}
+        </div>
+      )}
     </div>
   )
 }
