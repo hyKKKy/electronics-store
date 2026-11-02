@@ -29,6 +29,11 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.CONFLICT, e.getMessage(), Map.of());
     }
 
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthorized(UnauthorizedException e) {
+        return build(HttpStatus.UNAUTHORIZED, e.getMessage(), Map.of());
+    }
+
     // Не пройшла валідація @Valid (порожня назва, від'ємна ціна тощо)
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException e) {

@@ -2,10 +2,14 @@ package com.example.backend.config;
 
 import com.example.backend.entity.Category;
 import com.example.backend.entity.Product;
+import com.example.backend.entity.Role;
+import com.example.backend.entity.User;
 import com.example.backend.repository.CategoryRepository;
 import com.example.backend.repository.ProductRepository;
+import com.example.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -16,11 +20,19 @@ import java.math.BigDecimal;
 @RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
 
+    // Тестовий адміністратор для локального запуску
+    private static final String ADMIN_EMAIL = "admin@store.local";
+    private static final String ADMIN_PASSWORD = "admin123";
+
     private final CategoryRepository categoryRepository;
     private final ProductRepository productRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public void run(String... args) {
+        createAdminIfMissing();
+
         if (categoryRepository.count() > 0) {
             return;
         }
@@ -39,6 +51,18 @@ public class DataInitializer implements CommandLineRunner {
         product("WH-1000XM5", "Sony", "13999.00", 10, headphones, "Бездротові навушники з шумозаглушенням");
         product("AirPods Pro 2", "Apple", "10999.00", 0, headphones, "Бездротові навушники (немає в наявності)");
         product("OLED55C4", "LG", "54999.00", 4, tvs, "Телевізор OLED 55\"");
+    }
+
+    private void createAdminIfMissing() {
+        if (userRepository.existsByEmail(ADMIN_EMAIL)) {
+            return;
+        }
+        User admin = new User();
+        admin.setEmail(ADMIN_EMAIL);
+        admin.setPassword(passwordEncoder.encode(ADMIN_PASSWORD));
+        admin.setName("Адміністратор");
+        admin.setRole(Role.ADMIN);
+        userRepository.save(admin);
     }
 
     private Category category(String name, String description) {
