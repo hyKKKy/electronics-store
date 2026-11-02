@@ -4,12 +4,14 @@ import com.example.backend.dto.PageResponse;
 import com.example.backend.dto.ProductRequest;
 import com.example.backend.dto.ProductResponse;
 import com.example.backend.entity.Category;
+import com.example.backend.entity.MovementType;
 import com.example.backend.entity.Product;
 import com.example.backend.exception.ConflictException;
 import com.example.backend.exception.NotFoundException;
 import com.example.backend.repository.CategoryRepository;
 import com.example.backend.repository.OrderItemRepository;
 import com.example.backend.repository.ProductRepository;
+import com.example.backend.repository.StockMovementRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -25,6 +27,8 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final OrderItemRepository orderItemRepository;
+    private final StockMovementRepository stockMovementRepository;
+    private final WarehouseService warehouseService;
 
     // Каталог: пошук + фільтри + пагінація
     @Transactional(readOnly = true)
@@ -48,13 +52,24 @@ public class ProductService {
     public ProductResponse create(ProductRequest request) {
         Product product = new Product();
         fillFromRequest(product, request);
-        return ProductResponse.from(productRepository.save(product));
+        // Початковий залишок оформлюємо як надходження, щоб він був у журналі складу
+        product.setStock(0);
+        productRepository.save(product);
+        if (request.stock() > 0) {
+            warehouseService.changeStock(product, request.stock(), MovementType.INCOME, null, "Початковий залишок");
+        }
+        return ProductResponse.from(product);
     }
 
     @Transactional
     public ProductResponse update(Long id, ProductRequest request) {
         Product product = getProduct(id);
         fillFromRequest(product, request);
+        // Якщо адміністратор змінив кількість у формі товару — фіксуємо це як коригування
+        int delta = request.stock() - product.getStock();
+        if (delta != 0) {
+            warehouseService.changeStock(product, delta, MovementType.ADJUSTMENT, null, "Редагування товару");
+        }
         return ProductResponse.from(product);
     }
 
@@ -65,6 +80,7 @@ public class ProductService {
         if (orderItemRepository.existsByProductId(id)) {
             throw new ConflictException("Неможливо видалити товар: він є в замовленнях");
         }
+        stockMovementRepository.deleteByProductId(id);
         productRepository.delete(product);
     }
 
@@ -75,7 +91,6 @@ public class ProductService {
         product.setDescription(request.description());
         product.setBrand(request.brand());
         product.setPrice(request.price());
-        product.setStock(request.stock());
         product.setCategory(category);
     }
 

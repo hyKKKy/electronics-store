@@ -13,6 +13,7 @@ import org.springframework.data.repository.query.Param;
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
@@ -41,4 +42,22 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from Product p where p.id in :ids")
     List<Product> findAllByIdForUpdate(@Param("ids") Collection<Long> ids);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select p from Product p where p.id = :id")
+    Optional<Product> findByIdForUpdate(@Param("id") Long id);
+
+    // Товари із залишком не більше порогу — що пора дозамовити
+    @EntityGraph(attributePaths = "category")
+    List<Product> findByStockLessThanEqualOrderByStockAscNameAsc(Integer threshold);
+
+    long countByStock(Integer stock);
+
+    long countByStockLessThanEqual(Integer threshold);
+
+    @Query("select coalesce(sum(p.stock), 0) from Product p")
+    long sumStock();
+
+    @Query("select coalesce(sum(p.price * p.stock), 0) from Product p")
+    BigDecimal sumStockValue();
 }

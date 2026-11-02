@@ -4,6 +4,7 @@ import com.example.backend.dto.CreateOrderRequest;
 import com.example.backend.dto.OrderItemRequest;
 import com.example.backend.dto.OrderResponse;
 import com.example.backend.dto.PageResponse;
+import com.example.backend.entity.MovementType;
 import com.example.backend.entity.Order;
 import com.example.backend.entity.OrderItem;
 import com.example.backend.entity.OrderStatus;
@@ -35,6 +36,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
+    private final WarehouseService warehouseService;
 
     // Оформлення замовлення: перевіряємо наявність, списуємо товар зі складу,
     // фіксуємо ціни на момент покупки
@@ -67,7 +69,6 @@ public class OrderService {
                 throw new ConflictException("Недостатньо товару '" + product.getName()
                         + "' на складі: доступно " + product.getStock() + ", замовлено " + quantity);
             }
-            product.setStock(product.getStock() - quantity);
 
             OrderItem item = new OrderItem();
             item.setProduct(product);
@@ -79,7 +80,14 @@ public class OrderService {
 
         order.setTotalPrice(total);
         order.changeStatus(OrderStatus.NEW);
-        return OrderResponse.from(orderRepository.save(order));
+        orderRepository.save(order);
+
+        // Списуємо товар після збереження, щоб рух на складі посилався на замовлення
+        for (OrderItem item : order.getItems()) {
+            warehouseService.changeStock(item.getProduct(), -item.getQuantity(), MovementType.ORDER, order,
+                    "Замовлення №" + order.getId());
+        }
+        return OrderResponse.from(order);
     }
 
     // Замовлення поточного користувача, від нових до старих
@@ -131,8 +139,8 @@ public class OrderService {
     // Скасування повертає товари на склад
     private void cancel(Order order) {
         for (OrderItem item : order.getItems()) {
-            Product product = item.getProduct();
-            product.setStock(product.getStock() + item.getQuantity());
+            warehouseService.changeStock(item.getProduct(), item.getQuantity(), MovementType.ORDER_CANCEL, order,
+                    "Скасування замовлення №" + order.getId());
         }
         order.changeStatus(OrderStatus.CANCELLED);
     }
