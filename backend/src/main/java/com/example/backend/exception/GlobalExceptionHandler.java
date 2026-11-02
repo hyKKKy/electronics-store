@@ -2,7 +2,7 @@ package com.example.backend.exception;
 
 import com.example.backend.dto.ErrorResponse;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
-import org.springframework.data.mapping.PropertyReferenceException;
+import org.springframework.data.core.PropertyReferenceException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
